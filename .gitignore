@@ -15,6 +15,7 @@ frontend/*.local
 
 # Backend ignores
 backend/node_modules/
+backend/.env
 backend/dist/
 backend/dist-ssr/
 backend/*.local
