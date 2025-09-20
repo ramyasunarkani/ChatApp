@@ -2,6 +2,7 @@
  const bcrypt=require('bcryptjs');
 const { generateToken } = require('../utils/token-gen');
 const uploadToS3 = require("../utils/S3"); // S3 helper
+const { Op } = require('sequelize');
 
 
  const signup=async(req,res)=>{
@@ -53,9 +54,15 @@ const uploadToS3 = require("../utils/S3"); // S3 helper
  }
 
  const login = async (req, res) => {
-  const { email, password } = req.body;
+  const { identifier, password } = req.body; 
+  // identifier = can be email OR phone
+
   try {
-    const user = await User.findOne({ where:{email} });
+    const user = await User.findOne({
+      where: {
+        [Op.or]: [{ email: identifier }, { phone: identifier }]
+      }
+    });
 
     if (!user) {
       return res.status(400).json({ message: "Invalid credentials" });
@@ -72,6 +79,7 @@ const uploadToS3 = require("../utils/S3"); // S3 helper
       id: user.id,
       fullName: user.fullName,
       email: user.email,
+      phone: user.phone,
       profilePic: user.profilePic,
     });
   } catch (error) {
@@ -79,6 +87,7 @@ const uploadToS3 = require("../utils/S3"); // S3 helper
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
+
 
  const logout = (req, res) => {
   try {
