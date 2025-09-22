@@ -2,6 +2,7 @@
 const { Op } = require("sequelize");
 const {User,Message} = require("../models");
 const uploadToS3 = require("../utils/S3");
+const { getReceiverSocketId,io} = require("../utils/socket");
 
 
 const getUsersForSidebar = async (req, res) => {
@@ -70,6 +71,10 @@ const sendMessage = async (req, res) => {
       message: text || null,
       image: imageUrl,
     });
+    const receiverSocketId = getReceiverSocketId(receiverId);
+    if (receiverSocketId) {
+      io.to(receiverSocketId).emit("newMessage", newMessage);
+    }
 
     res.status(201).json(newMessage);
   } catch (error) {

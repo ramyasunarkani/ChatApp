@@ -30,7 +30,7 @@ const authSlice = createSlice({
     },
     setOnlineUsers: (state, action) => {
       state.onlineUsers = action.payload;
-    },
+    }
   },
 });
 

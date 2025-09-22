@@ -110,21 +110,21 @@ const updateProfile = async (req, res) => {
     }
 
     // Upload image to S3
-const imageUrl = await uploadToS3(
-  req.file.buffer,
-  "profile-pics",
-  `user-${userId}.jpg`,
-  req.file.mimetype
-);
+    const imageUrl = await uploadToS3(
+      req.file.buffer,
+      "profile-pics",
+      `user-${userId}.jpg`,
+      req.file.mimetype
+    );
 
-    // Find user first
+    // Find user
     const user = await User.findByPk(userId);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
     // Update the profilePic field
-    user.profilePic = profilePicUrl;
+    user.profilePic = imageUrl;
     await user.save(); // Save changes to DB
 
     res.status(200).json(user);

@@ -2,11 +2,18 @@
 
 @import "tailwindcss";
 @plugin "daisyui";
-
-*{
-    font-family: "Outfit", sans-serif;
+/* Hide scrollbars globally */
+::-webkit-scrollbar {
+    display: none !important;
 }
 
-::-webkit-scrollbar{
-    display: none;
+/* For Firefox */
+* {
+    scrollbar-width: none !important;
 }
+
+/* For Edge/IE */
+* {
+    -ms-overflow-style: none !important;
+}
+

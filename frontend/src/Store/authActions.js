@@ -4,9 +4,14 @@ import {
   setIsLoggingIn,
   setIsUpdatingProfile,
   setIsCheckingAuth,
+  setOnlineUsers
 } from "./authSlice";
 import { axiosInstance } from "../lib/axios";
 import toast from "react-hot-toast";
+import { connectSocket, disconnectSocket } from "../lib/socket";
+
+
+
 
 // ✅ checkAuth
 export const checkAuth = () => async (dispatch) => {
@@ -14,6 +19,10 @@ export const checkAuth = () => async (dispatch) => {
   try {
     const res = await axiosInstance.get("/auth/check");
     dispatch(setAuthUser(res.data));
+    connectSocket(res.data.id, (userIds) => {
+      dispatch(setOnlineUsers(userIds));
+    });
+
   } catch (error) {
     console.log("Error in checkAuth:", error);
     dispatch(setAuthUser(null));
@@ -29,6 +38,10 @@ export const signup = (data) => async (dispatch) => {
     const res = await axiosInstance.post("/auth/signup", data);
     dispatch(setAuthUser(res.data));
     toast.success("Account created successfully");
+        connectSocket(res.data.id, (userIds) => {
+      dispatch(setOnlineUsers(userIds));
+    });
+
   } catch (error) {
     toast.error(error.response?.data?.message || "Signup failed");
   } finally {
@@ -43,6 +56,9 @@ export const login = (data) => async (dispatch) => {
     const res = await axiosInstance.post("/auth/login", data);
     dispatch(setAuthUser(res.data));
     toast.success("Logged in successfully");
+    connectSocket(res.data.id, (userIds) => {
+      dispatch(setOnlineUsers(userIds));
+    });
   } catch (error) {
     toast.error(error.response?.data?.message || "Login failed");
   } finally {
@@ -56,6 +72,8 @@ export const logout = () => async (dispatch) => {
     await axiosInstance.post("/auth/logout");
     dispatch(setAuthUser(null));
     toast.success("Logged out successfully");
+     disconnectSocket();
+    dispatch(setOnlineUsers([]));
   } catch (error) {
     toast.error(error.response?.data?.message || "Logout failed");
   }
@@ -75,3 +93,4 @@ export const updateProfile = (data) => async (dispatch) => {
     dispatch(setIsUpdatingProfile(false));
   }
 };
+
