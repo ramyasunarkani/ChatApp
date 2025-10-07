@@ -1,23 +1,26 @@
 const AWS = require("aws-sdk");
-const { v4: uuidv4 } = require("uuid");
 
 const s3 = new AWS.S3({
   accessKeyId: process.env.AWS_ACCESS_KEY_ID,
   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  region: "ap-south-1",
+  region: process.env.AWS_REGION || "ap-south-1",
 });
 
-const uploadToS3 = async (buffer, folder, fileName, mimetype) => {
+const uploadImageToS3 = async (buffer, fileName, mimetype) => {
+  if (!mimetype.startsWith("image/")) {
+    throw new Error("Only images are allowed");
+  }
+
   const params = {
-    Bucket: "ramya-expense",
-    Key: `${folder}/${fileName}`,   // flexible folder & file
+    Bucket: process.env.AWS_BUCKET_NAME,
+    Key: `images/${fileName}`, // always goes inside "images" folder
     Body: buffer,
     ContentType: mimetype,
     ACL: "public-read",
   };
 
-  const response = await s3.upload(params).promise();
-  return response.Location; // public URL
+  const result = await s3.upload(params).promise();
+  return result.Location; // public image URL
 };
 
-module.exports = uploadToS3;
+module.exports = uploadImageToS3;

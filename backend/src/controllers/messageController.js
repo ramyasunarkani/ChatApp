@@ -2,7 +2,7 @@
 const { Op } = require("sequelize");
 const {User,Message} = require("../models");
 const uploadToS3 = require("../utils/S3");
-const { getReceiverSocketId,io} = require("../utils/socket");
+const { getReceiverSocketId, io } = require("../../socket_io");
 
 
 const getUsersForSidebar = async (req, res) => {
@@ -56,21 +56,25 @@ const sendMessage = async (req, res) => {
     const { text } = req.body;
     const { id: receiverId } = req.params;   
     const senderId = req.user.id;            
-
-    let imageUrl = null;
+    let mediaUrl = null;
 
     // If image file is uploaded
     if (req.file) {
-      imageUrl = await uploadToS3(req.file.buffer, `messages/${Date.now()}-${req.file.originalname}`, req.file.mimetype);
+      mediaUrl = await uploadToS3(
+        req.file.buffer,
+        "chat-media",
+        `${Date.now()}-${req.file.originalname}`,
+        req.file.mimetype
+      );
     }
-
     // Save message in DB
-    const newMessage = await Message.create({
+     const newMessage = await Message.create({
       senderId,
       receiverId,
       message: text || null,
-      image: imageUrl,
+      media: mediaUrl, // renamed from `image` to `media` for any file type
     });
+    
     const receiverSocketId = getReceiverSocketId(receiverId);
     if (receiverSocketId) {
       io.to(receiverSocketId).emit("newMessage", newMessage);

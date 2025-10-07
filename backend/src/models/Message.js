@@ -10,12 +10,9 @@ const Message = sequelize.define("Message", {
   },
   message: {
     type: DataTypes.TEXT,
-    allowNull: false,
-  },
-  image: {
-    type: DataTypes.STRING,  // S3 URL
     allowNull: true,
   },
+  media: { type: DataTypes.STRING, allowNull: true },
   
 });
 

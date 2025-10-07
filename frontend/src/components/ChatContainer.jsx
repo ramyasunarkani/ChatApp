@@ -13,7 +13,7 @@ const ChatContainer = () => {
 
   const { messages, isMessagesLoading, selectedUser } = useSelector((state) => state.chat);
   const { authUser } = useSelector((state) => state.auth);
-
+console.log(messages)
   // Fetch messages when selectedUser changes
   useEffect(() => {
     if (selectedUser?.id) {
@@ -76,15 +76,58 @@ const ChatContainer = () => {
             </div>
 
             <div className="chat-bubble flex flex-col">
-              {message.image && (
-                <img
-                  src={message.image}
-                  alt="Attachment"
-                  className="sm:max-w-[200px] rounded-md mb-2"
-                />
-              )}
-              {message.message && <p>{message.message}</p>}
-            </div>
+  {message.media && (() => {
+    const url = message.media.toLowerCase();
+
+    if (url.endsWith(".pdf")) {
+      // PDF
+      return (
+        <div className="mb-2">
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-500 underline"
+          >
+            View PDF
+          </a>
+          <iframe
+            src={url}
+            title="PDF Preview"
+            className="w-full h-64 border rounded-md mt-1"
+          />
+        </div>
+      );
+    } else if (/\.(jpeg|jpg|png|gif)$/i.test(url)) {
+      // Image
+      return <img src={url} alt="Attachment" className="sm:max-w-[200px] rounded-md mb-2" />;
+    } else if (/\.(mp4|webm|ogg)$/i.test(url)) {
+      // Video
+      return (
+        <video
+          src={url}
+          controls
+          className="sm:max-w-[300px] rounded-md mb-2"
+        />
+      );
+    } else {
+      // Other file types – just show a download link
+      return (
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-500 underline mb-2"
+        >
+          Download File
+        </a>
+      );
+    }
+  })()}
+
+  {message.message && <p>{message.message}</p>}
+</div>
+
           </div>
         ))}
       </div>

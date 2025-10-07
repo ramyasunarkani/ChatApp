@@ -8,6 +8,6 @@ const upload = require('../utils/upload');
 router.get("/users", protectRoute, messageController.getUsersForSidebar);
 router.get("/:id", protectRoute, messageController.getMessages);
 
-router.post("/send/:id", protectRoute,upload.single("image"),  messageController.sendMessage);
+router.post("/send/:id", protectRoute, upload.single("media"),  messageController.sendMessage);
 
 module.exports=router
