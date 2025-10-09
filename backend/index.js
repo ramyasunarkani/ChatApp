@@ -1,38 +1,37 @@
-const dotenv=require('dotenv');
+const express = require('express');
+const http = require('http');
+const dotenv = require('dotenv');
 dotenv.config();
 
-const express=require('express');
-const authRoutes=require('./src/routes/authRoute');
-const messageRoutes=require('./src/routes/messageRoute');
-const cors=require('cors')
+const cors = require('cors');
+const cookieParser = require('cookie-parser');
+const authRoutes = require('./src/routes/authRoute');
+const messageRoutes = require('./src/routes/messageRoute');
+const groupRoutes = require('./src/routes/groupRoute');
+const sequelize = require('./src/utils/db-connection');
+require('./src/models');
 
-const sequelize=require('./src/utils/db-connection')
-require('./src/models')
-const cookieParser=require('cookie-parser');
-const { app, server } = require('./socket_io');
+const { initSocket } = require('./socket_io'); // ✅ updated import
 
-app.use(express.json()); 
+const app = express();
+const server = http.createServer(app);
+initSocket(server); // ✅ this sets up io
+
+app.use(express.json());
 app.use(cookieParser());
 app.use(cors({
-    origin:"http://localhost:5173",
-    credentials:true,
+  origin: "http://localhost:5173",
+  credentials: true,
 }));
 
-app.get('/',(req,res)=>{
-    res.send('app is running');
-})
-app.use('/api/auth',authRoutes);
-app.use('/api/messages',messageRoutes);
+app.get('/', (req, res) => res.send('Server is running'));
+app.use('/api/auth', authRoutes);
+app.use('/api/messages', messageRoutes);
+app.use('/api/groups', groupRoutes);
 
+const port = process.env.PORT || 4000;
 
-const port =process.env.PORT
-
-sequelize.sync().then(()=>{
-    console.log("database connected and sync");
-    server.listen(port,()=>{
-    console.log(`sever is running on port ${port}`);
-})
-}).catch((err)=>{
-    console.log("database connection failed",err);
-
-})
+sequelize.sync().then(() => {
+  console.log("Database connected & synced");
+  server.listen(port, () => console.log(`Server running on port ${port}`));
+}).catch(err => console.error("DB connection failed:", err));

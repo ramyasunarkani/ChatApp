@@ -7,6 +7,8 @@ const upload = require('../utils/upload');
 
 router.get("/users", protectRoute, messageController.getUsersForSidebar);
 router.get("/:id", protectRoute, messageController.getMessages);
+router.get("/users/search", protectRoute, messageController.searchUsers);
+
 
 router.post("/send/:id", protectRoute, upload.single("media"),  messageController.sendMessage);
 

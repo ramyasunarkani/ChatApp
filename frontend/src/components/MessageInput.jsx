@@ -3,9 +3,12 @@ import { useDispatch, useSelector } from "react-redux";
 import { Image, Send, X, FileText, Video } from "lucide-react";
 import toast from "react-hot-toast";
 import { sendMessage } from "../Store/chatActions";
+import { sendGroupMessage } from "../Store/groupActions";
 
 const MessageInput = () => {
   const dispatch = useDispatch();
+    const { selectedGroup } = useSelector((state) => state.group);
+
   const { selectedUser } = useSelector((state) => state.chat);
   const { authUser } = useSelector((state) => state.auth);
 
@@ -51,23 +54,42 @@ const MessageInput = () => {
 
   // Send message
   const handleSendMessage = async (e) => {
-    e.preventDefault();
-    if (!selectedUser) return toast.error("Select a user to send message");
-    if (!text.trim() && !filePreview) return;
+  e.preventDefault();
+  if (!selectedUser && !selectedGroup) return toast.error("Select a chat to send message");
+  if (!text.trim() && !filePreview) return;
 
-    const formData = new FormData();
-    if (text.trim()) formData.append("text", text.trim());
-    if (filePreview) formData.append("media", filePreview.file);
+  let mediaUrl = null;
 
-    try {
-      await dispatch(sendMessage(selectedUser.id, formData));
-      setText("");
-      removeFile();
-    } catch (error) {
-      console.error(error);
-      toast.error("Failed to send message");
-    }
+  // 1️⃣ Upload file if exists
+  if (filePreview) {
+    const fd = new FormData();
+    fd.append("media", filePreview.file);
+
+    const res = await axiosInstance.post("/upload", fd); // your S3 upload endpoint
+    mediaUrl = res.data.url; // public URL
+  }
+
+  // 2️⃣ Prepare payload
+  const payload = {
+    text: text.trim() || "",
+    filePreview: mediaUrl ? { file: null, preview: mediaUrl } : null,
   };
+
+  // 3️⃣ Dispatch appropriate action
+  try {
+    if (selectedUser) {
+      await dispatch(sendMessage(selectedUser.id, payload));
+    } else if (selectedGroup) {
+      await dispatch(sendGroupMessage(selectedGroup.id, { text: text.trim(), filePreview: { file: filePreview?.file, preview: mediaUrl } }));
+    }
+    setText("");
+    removeFile();
+  } catch (error) {
+    console.error(error);
+    toast.error("Failed to send message");
+  }
+};
+
 
   return (
     <div className="p-4 w-full">

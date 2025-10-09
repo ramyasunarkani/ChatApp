@@ -1,14 +1,13 @@
 import { X } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { setSelectedUser } from "../Store/chatSlice";
+import { setSelectedGroup } from "../Store/groupSlice";
 
-const ChatHeader = () => {
+const ChatHeader = ({ selectedUser, selectedGroup }) => {
   const dispatch = useDispatch();
-
-  const { selectedUser } = useSelector((state) => state.chat);
   const { onlineUsers } = useSelector((state) => state.auth);
 
-  if (!selectedUser) return null;
+  if (!selectedUser && !selectedGroup) return null;
 
   return (
     <div className="p-2.5 border-b border-base-300">
@@ -17,21 +16,39 @@ const ChatHeader = () => {
           {/* Avatar */}
           <div className="avatar">
             <div className="w-10 h-10 rounded-full relative">
-              <img src={selectedUser.profilePic || "/avatar.png"} alt={selectedUser.fullName} />
+              <img
+                src={
+                  selectedUser
+                    ? selectedUser.profilePic || "/avatar.png"
+                    : "/group.png"
+                }
+                alt={selectedUser ? selectedUser.fullName : selectedGroup.name}
+              />
             </div>
           </div>
 
-          {/* User info */}
+          {/* Info */}
           <div>
-            <h3 className="font-medium">{selectedUser.fullName}</h3>
+            <h3 className="font-medium">
+              {selectedUser ? selectedUser.fullName : selectedGroup.name}
+            </h3>
             <p className="text-sm text-base-content/70">
-              {onlineUsers.includes(selectedUser.id) ? "Online" : "Offline"}
+              {selectedUser
+                ? onlineUsers.includes(selectedUser.id)
+                  ? "Online"
+                  : "Offline"
+                : `${selectedGroup?.Members?.length || 0} members`}
             </p>
           </div>
         </div>
 
         {/* Close button */}
-        <button onClick={() => dispatch(setSelectedUser(null))}>
+        <button
+          onClick={() => {
+            if (selectedUser) dispatch(setSelectedUser(null));
+            if (selectedGroup) dispatch(setSelectedGroup(null));
+          }}
+        >
           <X />
         </button>
       </div>

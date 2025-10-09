@@ -4,6 +4,7 @@ const { generateToken } = require('../utils/token-gen');
 const uploadToS3 = require("../utils/S3"); // S3 helper
 const { Op } = require('sequelize');
 
+const path = require("path");
 
  const signup=async(req,res)=>{
    const {fullName,email,phone,password}=req.body;
@@ -109,11 +110,13 @@ const updateProfile = async (req, res) => {
       return res.status(400).json({ message: "Profile pic is required" });
     }
 
+    const originalExt = path.extname(req.file.originalname); // get real extension
+    const fileName = `user-${userId}${originalExt}`;
+
     // Upload image to S3
     const imageUrl = await uploadToS3(
       req.file.buffer,
-      "profile-pics",
-      `user-${userId}.jpg`,
+      fileName,
       req.file.mimetype
     );
 
@@ -130,10 +133,9 @@ const updateProfile = async (req, res) => {
     res.status(200).json(user);
   } catch (error) {
     console.error("error in update profile:", error);
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ message: error.message || "Internal server error" });
   }
 };
-
 
  const checkAuth = (req, res) => {
   try {

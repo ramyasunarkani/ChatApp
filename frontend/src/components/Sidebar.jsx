@@ -1,35 +1,39 @@
+{/* Sidebar.jsx */}
 import { useEffect, useState } from "react";
 import SidebarSkeleton from "./skeletons/SidebarSkeleton";
-import { Users } from "lucide-react";
+import { Users, MessageCircle } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchUsers } from "../Store/chatActions";
+import { fetchGroups } from "../Store/groupActions";
+import { setSelectedGroup } from "../Store/groupSlice";
 import { setSelectedUser } from "../Store/chatSlice";
 
 const Sidebar = () => {
-  const dispatch=useDispatch();
-  const {users, selectedUser, isUsersLoading } = useSelector(state=>state.chat);
-
-  const { onlineUsers } = useSelector(state=>state.auth);
+  const dispatch = useDispatch();
+  const { users, selectedUser, isUsersLoading } = useSelector((state) => state.chat);
+  const { groups, selectedGroup, isGroupsLoading } = useSelector((state) => state.group);
+  const { onlineUsers } = useSelector((state) => state.auth);
   const [showOnlineOnly, setShowOnlineOnly] = useState(false);
 
   useEffect(() => {
     dispatch(fetchUsers());
+    dispatch(fetchGroups());
   }, [dispatch]);
 
   const filteredUsers = showOnlineOnly
     ? users.filter((user) => onlineUsers.includes(user.id))
     : users;
 
-  if (isUsersLoading) return <SidebarSkeleton />;
+  if (isUsersLoading || isGroupsLoading) return <SidebarSkeleton />;
 
   return (
     <aside className="h-full w-20 lg:w-72 border-r border-base-300 flex flex-col transition-all duration-200">
+      {/* Contacts Header */}
       <div className="border-b border-base-300 w-full p-5">
         <div className="flex items-center gap-2">
           <Users className="size-6" />
           <span className="font-medium hidden lg:block">Contacts</span>
         </div>
-        {/* TODO: Online filter toggle */}
         <div className="mt-3 hidden lg:flex items-center gap-2">
           <label className="cursor-pointer flex items-center gap-2">
             <input
@@ -44,16 +48,18 @@ const Sidebar = () => {
         </div>
       </div>
 
-      <div className="overflow-y-auto w-full py-3">
+      {/* Users */}
+      <div className="overflow-y-auto w-full py-3 space-y-3">
         {filteredUsers.map((user) => (
           <button
             key={user.id}
-            onClick={() => dispatch(setSelectedUser(user))}
-            className={`
-              w-full p-3 flex items-center gap-3
-              hover:bg-base-300 transition-colors
-              ${selectedUser?.id === user.id ? "bg-base-300 ring-1 ring-base-300" : ""}
-            `}
+            onClick={() => {
+              dispatch(setSelectedUser(user));
+              dispatch(setSelectedGroup(null)); // clear selected group
+            }}
+            className={`w-full p-3 flex items-center gap-3 hover:bg-base-300 transition-colors ${
+              selectedUser?.id === user.id ? "bg-base-300 ring-1 ring-base-300" : ""
+            }`}
           >
             <div className="relative mx-auto lg:mx-0">
               <img
@@ -62,14 +68,9 @@ const Sidebar = () => {
                 className="size-12 object-cover rounded-full"
               />
               {onlineUsers.includes(user.id) && (
-                <span
-                  className="absolute bottom-0 right-0 size-3 bg-green-500 
-                  rounded-full ring-2 ring-zinc-900"
-                />
+                <span className="absolute bottom-0 right-0 size-3 bg-green-500 rounded-full ring-2 ring-zinc-900" />
               )}
             </div>
-
-            {/* User info - only visible on larger screens */}
             <div className="hidden lg:block text-left min-w-0">
               <div className="font-medium truncate">{user.fullName}</div>
               <div className="text-sm text-zinc-400">
@@ -79,11 +80,38 @@ const Sidebar = () => {
           </button>
         ))}
 
-        {filteredUsers.length === 0 && (
-          <div className="text-center text-zinc-500 py-4">No online users</div>
+        {/* Groups */}
+        {groups.map((group) => (
+  <button
+    key={group.id}
+    onClick={() => {
+      dispatch(setSelectedGroup(group)); // select the group
+      dispatch(setSelectedUser(null));   // clear selected user
+    }}
+    className={`
+      w-full p-3 flex items-center gap-3
+      hover:bg-base-300 transition-colors
+      ${selectedGroup?.id === group.id ? "bg-base-300 ring-1 ring-base-300" : ""}
+    `}
+  >
+    <div className="relative mx-auto lg:mx-0">
+      <div className="size-12 flex items-center justify-center bg-primary text-white rounded-full">
+        {group.name[0].toUpperCase()}
+      </div>
+    </div>
+    <div className="hidden lg:block text-left min-w-0">
+      <div className="font-medium truncate">{group.name}</div>
+      <div className="text-sm text-zinc-400">{group.Members?.length || 0} members</div>
+    </div>
+  </button>
+))}
+
+        {filteredUsers.length === 0 && groups.length === 0 && (
+          <div className="text-center text-zinc-500 py-4">No users or groups</div>
         )}
       </div>
     </aside>
   );
 };
+
 export default Sidebar;

@@ -11,6 +11,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { Loader } from "lucide-react";
 import { Toaster } from "react-hot-toast";
 import ProfilePage from './pages/ProfilePage';
+import { subscribeToGroupCreated, subscribeToGroupMessages } from './Store/groupSocket';
 
 
 const App = () => {
@@ -20,6 +21,13 @@ const App = () => {
 
   },[])
   const {authUser,isCheckingAuth}=useSelector(state=>state.auth);
+  useEffect(() => {
+  if (authUser) {
+    subscribeToGroupMessages(dispatch);
+    subscribeToGroupCreated(dispatch);
+  }
+}, [authUser]);
+
 
   if (isCheckingAuth && !authUser)
     return (

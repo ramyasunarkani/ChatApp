@@ -4,13 +4,12 @@ import {
   addMessage,
   setIsUsersLoading,
   setIsMessagesLoading,
-} from "./chatSlice";
+} from "./chatSlice.js";
 import { axiosInstance } from "../lib/axios";
 import toast from "react-hot-toast";
-import { getSocket } from "../lib/socket"; // get the shared socket from auth
+import { getSocket } from "../lib/socket"; 
 
 
-// ✅ fetch users
 export const fetchUsers = () => async (dispatch) => {
   dispatch(setIsUsersLoading(true));
   try {
@@ -23,7 +22,6 @@ export const fetchUsers = () => async (dispatch) => {
   }
 };
 
-// ✅ fetch messages
 export const fetchMessages = (userId) => async (dispatch) => {
   dispatch(setIsMessagesLoading(true));
   try {
@@ -36,7 +34,6 @@ export const fetchMessages = (userId) => async (dispatch) => {
   }
 };
 
-// ✅ send message
 export const sendMessage = (userId, messageData) => async (dispatch) => {
   try {
     const res = await axiosInstance.post(`/messages/send/${userId}`, messageData);
@@ -51,22 +48,19 @@ export const sendMessage = (userId, messageData) => async (dispatch) => {
 };
 
 
-// ✅ subscribe to messages from socket
 export const subscribeToMessages = (selectedUserId) => (dispatch) => {
   const socket = getSocket();
   if (!socket || !selectedUserId) return;
 
-  socket.off("newMessage"); // remove previous listener
+  socket.off("newMessage"); 
 
   socket.on("newMessage", (newMessage) => {
-    // only add message if it's from the selected user
     if (newMessage.senderId === selectedUserId) {
       dispatch(addMessage(newMessage));
     }
   });
 };
 
-// ✅ unsubscribe (optional)
 export const unsubscribeFromMessages = () => (dispatch) => {
   const socket = getSocket();
   if (socket) socket.off("newMessage");
