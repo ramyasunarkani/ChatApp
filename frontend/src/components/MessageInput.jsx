@@ -7,8 +7,7 @@ import { sendGroupMessage } from "../Store/groupActions";
 
 const MessageInput = () => {
   const dispatch = useDispatch();
-    const { selectedGroup } = useSelector((state) => state.group);
-
+  const { selectedGroup } = useSelector((state) => state.group);
   const { selectedUser } = useSelector((state) => state.chat);
   const { authUser } = useSelector((state) => state.auth);
 
@@ -16,7 +15,6 @@ const MessageInput = () => {
   const [filePreview, setFilePreview] = useState(null); // { file: File, preview: string }
   const fileInputRef = useRef(null);
 
-  // Handle file selection
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -46,54 +44,40 @@ const MessageInput = () => {
     reader.readAsDataURL(file);
   };
 
-  // Remove selected file
   const removeFile = () => {
     setFilePreview(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  // Send message
   const handleSendMessage = async (e) => {
-  e.preventDefault();
-  if (!selectedUser && !selectedGroup) return toast.error("Select a chat to send message");
-  if (!text.trim() && !filePreview) return;
+    e.preventDefault();
+    if (!selectedUser && !selectedGroup)
+      return toast.error("Select a chat to send message");
+    if (!text.trim() && !filePreview) return;
 
-  let mediaUrl = null;
-
-  // 1️⃣ Upload file if exists
-  if (filePreview) {
+    // Prepare form data
     const fd = new FormData();
-    fd.append("media", filePreview.file);
+    fd.append("text", text.trim() || "");
+    if (filePreview) fd.append("media", filePreview.file);
 
-    const res = await axiosInstance.post("/upload", fd); // your S3 upload endpoint
-    mediaUrl = res.data.url; // public URL
-  }
-
-  // 2️⃣ Prepare payload
-  const payload = {
-    text: text.trim() || "",
-    filePreview: mediaUrl ? { file: null, preview: mediaUrl } : null,
-  };
-
-  // 3️⃣ Dispatch appropriate action
-  try {
-    if (selectedUser) {
-      await dispatch(sendMessage(selectedUser.id, payload));
-    } else if (selectedGroup) {
-      await dispatch(sendGroupMessage(selectedGroup.id, { text: text.trim(), filePreview: { file: filePreview?.file, preview: mediaUrl } }));
+    try {
+      if (selectedUser) {
+        // Send to user endpoint
+        await dispatch(sendMessage(selectedUser.id, fd, true)); // true = formData
+      } else if (selectedGroup) {
+        // Send to group endpoint
+        await dispatch(sendGroupMessage(selectedGroup.id, fd, true));
+      }
+      setText("");
+      removeFile();
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to send message");
     }
-    setText("");
-    removeFile();
-  } catch (error) {
-    console.error(error);
-    toast.error("Failed to send message");
-  }
-};
-
+  };
 
   return (
     <div className="p-4 w-full">
-      {/* File Preview */}
       {filePreview && (
         <div className="mb-3 flex items-center gap-2">
           <div className="relative">
@@ -115,10 +99,11 @@ const MessageInput = () => {
               !filePreview.file.type.startsWith("video/") && (
                 <div className="flex items-center gap-1 border rounded-lg p-2 bg-gray-100">
                   <FileText size={20} />
-                  <span className="truncate max-w-[120px]">{filePreview.file.name}</span>
+                  <span className="truncate max-w-[120px]">
+                    {filePreview.file.name}
+                  </span>
                 </div>
               )}
-
             <button
               onClick={removeFile}
               className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-base-300 flex items-center justify-center"
@@ -130,7 +115,6 @@ const MessageInput = () => {
         </div>
       )}
 
-      {/* Input Form */}
       <form onSubmit={handleSendMessage} className="flex items-center gap-2">
         <div className="flex-1 flex gap-2">
           <input
