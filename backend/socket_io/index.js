@@ -1,6 +1,6 @@
 const { Server } = require("socket.io");
 const jwt = require("jsonwebtoken");
-const { User, GroupMember, GroupMessage } = require("../src/models"); // adjust path
+const { User, GroupMember, GroupMessage } = require("../src/models");
 
 const userSocketMap = {}; // userId -> Set of socketIds
 let io;
@@ -14,7 +14,7 @@ function initSocket(server) {
     transports: ["websocket"],
   });
 
-  // Middleware: JWT auth
+  // ✅ Authenticate socket with JWT
   io.use(async (socket, next) => {
     try {
       const cookie = socket.handshake.headers.cookie;
@@ -37,14 +37,14 @@ function initSocket(server) {
 
   io.on("connection", async (socket) => {
     const userId = socket.user.id;
+    console.log(`✅ User connected: ${userId}`);
 
     userSocketMap[userId] = userSocketMap[userId] || new Set();
     userSocketMap[userId].add(socket.id);
 
-    // Emit online users
     io.emit("getOnlineUsers", Object.keys(userSocketMap).map(Number));
 
-    // Join all groups
+    // ✅ Auto join user’s groups
     try {
       const memberships = await GroupMember.findAll({
         where: { userId },
@@ -52,10 +52,10 @@ function initSocket(server) {
       });
       memberships.forEach((m) => socket.join(`group-${m.groupId}`));
     } catch (err) {
-      console.error("Error joining groups on connect:", err);
+      console.error("Error joining groups:", err);
     }
 
-    // Group join/leave/message handlers
+    // ✅ Join group manually
     socket.on("group:join", async ({ groupId }) => {
       const member = await GroupMember.findOne({ where: { groupId, userId } });
       if (!member) return socket.emit("error", { message: "Not a group member" });
@@ -64,42 +64,54 @@ function initSocket(server) {
       io.to(`group-${groupId}`).emit("group:joined", { groupId, userId });
     });
 
+    // ✅ Leave group
     socket.on("group:leave", ({ groupId }) => {
       socket.leave(`group-${groupId}`);
       io.to(`group-${groupId}`).emit("group:left", { groupId, userId });
     });
 
+    // ✅ Send message inside group
     socket.on("group:message:send", async (payload, ack) => {
       try {
         const { groupId, message, media } = payload;
+
         const member = await GroupMember.findOne({ where: { groupId, userId } });
         if (!member) return ack?.({ status: "error", message: "Not a group member" });
+
+        const sanitizedMessage =
+          typeof message === "string" && message.trim() !== "" ? message.trim() : null;
+        const sanitizedMedia =
+          typeof media === "string" && media.trim() !== "" ? media.trim() : null;
 
         const gm = await GroupMessage.create({
           groupId,
           senderId: userId,
-          message: message || null,
-          media: media || null,
+          message: sanitizedMessage,
+          media: sanitizedMedia,
         });
 
         const out = await GroupMessage.findByPk(gm.id, {
-          include: [{ model: User, as: "Sender", attributes: ["id", "fullName", "profilePic", "email"] }],
+          include: [
+            { model: User, as: "Sender", attributes: ["id", "fullName", "profilePic", "email"] },
+          ],
         });
 
         io.to(`group-${groupId}`).emit("group:message:new", out);
-        ack?.({ status: "ok", message: "sent", data: out });
+        ack?.({ status: "ok", data: out });
       } catch (err) {
         console.error("group message send error:", err);
         ack?.({ status: "error", message: "Server error" });
       }
     });
 
+    // ✅ Handle disconnect
     socket.on("disconnect", () => {
       if (userSocketMap[userId]) {
         userSocketMap[userId].delete(socket.id);
         if (userSocketMap[userId].size === 0) delete userSocketMap[userId];
       }
       io.emit("getOnlineUsers", Object.keys(userSocketMap).map(Number));
+      console.log(`❌ User disconnected: ${userId}`);
     });
   });
 

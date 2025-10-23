@@ -9,18 +9,21 @@ import {
 } from "./groupSlice";
 import { getSocket } from "../lib/socket";
 
+// ✅ Fetch all groups user is a member of
 export const fetchGroups = () => async (dispatch) => {
   dispatch(setIsGroupsLoading(true));
   try {
-    const res = await axiosInstance.get("/groups"); // you may need to make a route to list groups for a user
+    const res = await axiosInstance.get("/groups");
     dispatch(setGroups(res.data));
   } catch (err) {
+    console.error(err);
     toast.error("Failed to fetch groups");
   } finally {
     dispatch(setIsGroupsLoading(false));
   }
 };
 
+// ✅ Fetch messages for a specific group
 export const fetchGroupMessages = (groupId) => async (dispatch) => {
   dispatch(setIsGroupMessagesLoading(true));
   try {
@@ -33,19 +36,26 @@ export const fetchGroupMessages = (groupId) => async (dispatch) => {
   }
 };
 
-export const sendGroupMessage = (groupId, { text, filePreview }) => async (dispatch) => {
+// ✅ Send a message via socket
+export const sendGroupMessage = (groupId, formData, isFormData = false) => async () => {
   const socket = getSocket();
   if (!socket) return;
 
-  let mediaUrl = filePreview?.preview || null; // already uploaded
+  let message = null;
+  let mediaUrl = null;
 
-  socket.emit(
-    "group:message:send",
-    { groupId, message: text || "", media: mediaUrl },
-    (ack) => {
-      if (ack.status === "ok") dispatch(addGroupMessage(ack.data));
-      else toast.error(ack.message);
+  if (isFormData) {
+    message = formData.get("text")?.trim() || null;
+    const file = formData.get("media");
+    if (file) {
+      mediaUrl = await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.readAsDataURL(file);
+      });
     }
-  );
-};
+  }
 
+  // Emit to server. Do NOT dispatch here — server will broadcast to all including sender
+  socket.emit("group:message:send", { groupId, message, media: mediaUrl });
+};

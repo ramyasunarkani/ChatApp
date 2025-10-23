@@ -152,4 +152,37 @@ const fetchUserGroups = async (req, res) => {
   }
 };
 
-module.exports = { createGroup, joinGroup, getGroupMessages ,fetchUserGroups};
+const sendGroupMessage = async (req, res) => {
+  try {
+    const { id: groupId } = req.params;
+    const userId = req.user.id;
+    const { message } = req.body;
+    const media = req.file ? req.file.path : null;
+    const member = await GroupMember.findOne({ where: { groupId, userId } });
+    if (!member)
+      return res.status(403).json({ error: "You are not a member of this group" });
+
+    const gm = await GroupMessage.create({
+      groupId,
+      senderId: userId,
+      message: message?.trim() || null,
+      media: media || null,
+    });
+
+    const fullMessage = await GroupMessage.findByPk(gm.id, {
+      include: [
+        { model: User, as: "Sender", attributes: ["id", "fullName", "email", "profilePic"] },
+      ],
+    });
+
+    const io = getIo();
+    io.to(`group-${groupId}`).emit("group:message:new", fullMessage);
+
+    res.status(201).json(fullMessage);
+  } catch (err) {
+    console.error("sendGroupMessage error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+module.exports = { createGroup, joinGroup, getGroupMessages ,fetchUserGroups,sendGroupMessage};

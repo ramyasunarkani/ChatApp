@@ -20,13 +20,15 @@ const groupSlice = createSlice({
       const { groupId, messages } = action.payload;
       state.groupMessages[groupId] = messages;
     },
-    addGroupMessage: (state, action) => {
-      const msg = action.payload;
-      if (!state.groupMessages[msg.groupId]) {
-        state.groupMessages[msg.groupId] = [];
-      }
-      state.groupMessages[msg.groupId].push(msg);
-    },
+   addGroupMessage: (state, action) => {
+  const msg = action.payload;
+  if (!state.groupMessages[msg.groupId]) state.groupMessages[msg.groupId] = [];
+
+  // Prevent duplicates
+  const exists = state.groupMessages[msg.groupId].some((m) => m.id === msg.id);
+  if (!exists) state.groupMessages[msg.groupId].push(msg);
+},
+
     setIsGroupsLoading: (state, action) => {
       state.isGroupsLoading = action.payload;
     },
