@@ -20,7 +20,7 @@ const ChatHeader = ({ selectedUser, selectedGroup }) => {
                 src={
                   selectedUser
                     ? selectedUser.profilePic || "/avatar.png"
-                    : "/group.png"
+                    : "/group.jpeg"
                 }
                 alt={selectedUser ? selectedUser.fullName : selectedGroup.name}
               />

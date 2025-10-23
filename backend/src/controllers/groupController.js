@@ -113,29 +113,43 @@ const fetchUserGroups = async (req, res) => {
   try {
     const userId = req.user.id;
 
+    // 1️⃣ Fetch all group IDs where the user is a member
+    const memberships = await GroupMember.findAll({
+      where: { userId },
+      attributes: ["groupId"],
+    });
+
+    const groupIds = memberships.map((m) => m.groupId);
+
+    if (groupIds.length === 0) {
+      return res.json([]); // user is not in any group
+    }
+
+    // 2️⃣ Fetch groups by IDs
     const groups = await Group.findAll({
+      where: { id: groupIds },
       include: [
         {
           model: User,
-          as: "Members",
+          as: "Members", // fetch all members of each group
           attributes: ["id", "fullName", "email", "profilePic"],
           through: { attributes: ["role"] },
         },
         {
           model: User,
-          as: "Creator",
+          as: "Creator", // fetch the creator of the group
           attributes: ["id", "fullName", "email", "profilePic"],
         },
       ],
-      where: {
-        "$Members.id$": userId, // only groups where this user is a member
-      },
       order: [["createdAt", "DESC"]],
+      distinct: true,
     });
+
     res.json(groups);
   } catch (err) {
-    console.error("fetchUserGroups error", err);
+    console.error("fetchUserGroupsWithMembers error", err);
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
 module.exports = { createGroup, joinGroup, getGroupMessages ,fetchUserGroups};

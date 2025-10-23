@@ -14,7 +14,7 @@ const Sidebar = () => {
   const { groups, selectedGroup, isGroupsLoading } = useSelector((state) => state.group);
   const { onlineUsers } = useSelector((state) => state.auth);
   const [showOnlineOnly, setShowOnlineOnly] = useState(false);
-
+console.log(groups)
   useEffect(() => {
     dispatch(fetchUsers());
     dispatch(fetchGroups());
