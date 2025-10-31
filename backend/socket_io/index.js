@@ -2,19 +2,18 @@ const { Server } = require("socket.io");
 const jwt = require("jsonwebtoken");
 const { User, GroupMember, GroupMessage } = require("../src/models");
 
-const userSocketMap = {}; // userId -> Set of socketIds
+const userSocketMap = {}; 
 let io;
 
 function initSocket(server) {
   io = new Server(server, {
     cors: {
-      origin: ["http://localhost:5173"],
+      origin: [`${process.env.FRONTEND_URL}`],
       credentials: true,
     },
     transports: ["websocket"],
   });
 
-  // ✅ Authenticate socket with JWT
   io.use(async (socket, next) => {
     try {
       const cookie = socket.handshake.headers.cookie;
@@ -37,14 +36,13 @@ function initSocket(server) {
 
   io.on("connection", async (socket) => {
     const userId = socket.user.id;
-    console.log(`✅ User connected: ${userId}`);
+    console.log(`User connected: ${userId}`);
 
     userSocketMap[userId] = userSocketMap[userId] || new Set();
     userSocketMap[userId].add(socket.id);
 
     io.emit("getOnlineUsers", Object.keys(userSocketMap).map(Number));
 
-    // ✅ Auto join user’s groups
     try {
       const memberships = await GroupMember.findAll({
         where: { userId },
@@ -55,7 +53,6 @@ function initSocket(server) {
       console.error("Error joining groups:", err);
     }
 
-    // ✅ Join group manually
     socket.on("group:join", async ({ groupId }) => {
       const member = await GroupMember.findOne({ where: { groupId, userId } });
       if (!member) return socket.emit("error", { message: "Not a group member" });
@@ -64,13 +61,11 @@ function initSocket(server) {
       io.to(`group-${groupId}`).emit("group:joined", { groupId, userId });
     });
 
-    // ✅ Leave group
     socket.on("group:leave", ({ groupId }) => {
       socket.leave(`group-${groupId}`);
       io.to(`group-${groupId}`).emit("group:left", { groupId, userId });
     });
 
-    // ✅ Send message inside group
     socket.on("group:message:send", async (payload, ack) => {
       try {
         const { groupId, message, media } = payload;
@@ -104,14 +99,13 @@ function initSocket(server) {
       }
     });
 
-    // ✅ Handle disconnect
     socket.on("disconnect", () => {
       if (userSocketMap[userId]) {
         userSocketMap[userId].delete(socket.id);
         if (userSocketMap[userId].size === 0) delete userSocketMap[userId];
       }
       io.emit("getOnlineUsers", Object.keys(userSocketMap).map(Number));
-      console.log(`❌ User disconnected: ${userId}`);
+      console.log(`User disconnected: ${userId}`);
     });
   });
 
