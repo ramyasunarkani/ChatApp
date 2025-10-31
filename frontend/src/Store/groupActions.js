@@ -9,7 +9,6 @@ import {
 } from "./groupSlice";
 import { getSocket } from "../lib/socket";
 
-// ✅ Fetch all groups user is a member of
 export const fetchGroups = () => async (dispatch) => {
   dispatch(setIsGroupsLoading(true));
   try {
@@ -23,7 +22,6 @@ export const fetchGroups = () => async (dispatch) => {
   }
 };
 
-// ✅ Fetch messages for a specific group
 export const fetchGroupMessages = (groupId) => async (dispatch) => {
   dispatch(setIsGroupMessagesLoading(true));
   try {
@@ -36,7 +34,6 @@ export const fetchGroupMessages = (groupId) => async (dispatch) => {
   }
 };
 
-// ✅ Send a message via socket
 export const sendGroupMessage = (groupId, formData, isFormData = false) => async () => {
   const socket = getSocket();
   if (!socket) return;
@@ -56,6 +53,5 @@ export const sendGroupMessage = (groupId, formData, isFormData = false) => async
     }
   }
 
-  // Emit to server. Do NOT dispatch here — server will broadcast to all including sender
   socket.emit("group:message:send", { groupId, message, media: mediaUrl });
 };
